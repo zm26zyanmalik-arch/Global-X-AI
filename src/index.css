@@ -1,0 +1,104 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme {
+  --font-sans: "Geist Variable", "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  /* Sunlight Intelligence UI Colors */
+  --color-primary-50: #fefce8;
+  --color-primary-100: #fef9c3;
+  --color-primary-200: #fef08a;
+  --color-primary-300: #fde047;
+  --color-primary-400: #FFEEA9;
+  --color-primary-500: #F7E58D;
+  --color-primary-600: #eab308;
+  --color-primary-700: #ca8a04;
+  --color-primary-800: #a16207;
+  --color-primary-900: #713f12;
+
+  --color-background: #ffffff;
+  --color-foreground: #111111;
+  --color-border: #E5E7EB;
+  --color-ring: #F7E58D;
+  --color-input: #E5E7EB;
+  
+  --color-secondary-50: #F8F9FA;
+  --color-secondary-100: #F3F4F6;
+  --color-secondary-200: #E5E7EB;
+  --color-secondary-300: #D1D5DB;
+  --color-secondary-900: #111111;
+  
+  --radius: 1rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary-500/50 selection:text-foreground;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Sunlight Intelligence custom classes */
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-black/[0.02];
+  }
+  .sunlight-ring {
+    box-shadow: 0 0 40px rgba(247, 229, 141, 0.4), inset 0 0 20px rgba(247, 229, 141, 0.2);
+  }
+}
+
+.markdown-body p {
+  margin-bottom: 0.75rem;
+}
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+.markdown-body ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+.markdown-body ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+.markdown-body li {
+  margin-bottom: 0.25rem;
+}
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+  font-weight: 700;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  color: var(--color-foreground);
+}
+.markdown-body strong {
+  font-weight: 700;
+}
+.markdown-body pre {
+  background-color: var(--color-secondary-100);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin-bottom: 0.75rem;
+}
+.markdown-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  background-color: var(--color-secondary-100);
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+.markdown-body pre code {
+  background-color: transparent;
+  padding: 0;
+}

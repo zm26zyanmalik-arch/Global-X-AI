@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information and preferences.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "class": { "type": "string" },
+        "language": { "type": "string" },
+        "teacherChoice": { "type": "string" },
+        "createdAt": { "type": "number", "description": "Timestamp" },
+        "timeStudiedMins": { "type": "number" },
+        "chaptersCompleted": { "type": "number" },
+        "streak": { "type": "number" },
+        "points": { "type": "number" },
+        "lastActivityAt": { "type": "number", "description": "Last study activity timestamp" }
+      },
+      "required": ["name", "email", "class", "language", "teacherChoice", "createdAt", "timeStudiedMins", "chaptersCompleted", "streak", "points"]
+    },
+    "Note": {
+      "title": "User Note",
+      "description": "Personal notes created by the student.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "title", "content", "createdAt", "updatedAt"]
+    },
+    "TestResult": {
+      "title": "Test Result",
+      "description": "User test results and analytics.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "class": { "type": "string" },
+        "subject": { "type": "string" },
+        "score": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "correctAnswers": { "type": "number" },
+        "wrongAnswers": { "type": "number" },
+        "improvementTips": { "type": "array" },
+        "submittedAt": { "type": "number" },
+        "availableAt": { "type": "number", "description": "Timestamp when result becomes visible (1hr after submission)" }
+      },
+      "required": ["userId", "class", "subject", "score", "totalQuestions", "correctAnswers", "wrongAnswers", "submittedAt", "availableAt"]
+    },
+    "ChatHistory": {
+      "title": "Chat Message",
+      "description": "A message in the chat history.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "text": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "role", "text", "createdAt"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Study plan task.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "subject": { "type": "string" },
+        "duration": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "completed"] },
+        "color": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "title", "subject", "duration", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles and aggregate progress stats"
+    },
+    "/users/{userId}/chats/{chatId}": {
+      "schema": { "$ref": "#/entities/ChatHistory" },
+      "description": "User chat messages"
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "User planner tasks"
+    },
+    "/users/{userId}/notes/{noteId}": {
+      "schema": { "$ref": "#/entities/Note" },
+      "description": "User personal notes"
+    },
+    "/users/{userId}/testResults/{resultId}": {
+      "schema": { "$ref": "#/entities/TestResult" },
+      "description": "User test results"
+    }
+  }
+}

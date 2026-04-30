@@ -1,0 +1,6 @@
+{
+  "name": "Global X AI",
+  "description": "A globally successful next-generation AI education platform for students class 1 to 10.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": []
+}
