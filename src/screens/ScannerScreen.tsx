@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ai } from '../lib/gemini';
 import { GenerateContentResponse } from '@google/genai';
 
+import ReactMarkdown from 'react-markdown';
+
 export default function ScannerScreen() {
   const [isScanning, setIsScanning] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -44,6 +46,7 @@ export default function ScannerScreen() {
 
     setSelectedAction(actionLabel);
     setIsProcessing(true);
+    setAnalysisResult(null);
     
     try {
       const prompt = `You are a top-tier AI tutor. Analyze this educational image.
@@ -51,9 +54,10 @@ export default function ScannerScreen() {
       Task: Provide a highly accurate, structured, concise, and helpful response.
       For math, show step-by-step logic.
       For science/theory, provide a short, clear, easy to understand explanation.
-      Do not guess. Validating logic before responding.`;
+      If the image quality is poor, politely ask for a clearer image.
+      If you are unsure of the answer, state that, do not hallucinate.`;
       
-      const response: GenerateContentResponse = await ai.models.generateContent({
+      const response = await ai.models.generateContent({
         model: "gemini-3.1-pro-preview",
         contents: { 
           parts: [
@@ -231,10 +235,10 @@ export default function ScannerScreen() {
                       </div>
                    </div>
 
-                   <div className="bg-[#F9F9F9] rounded-2xl md:rounded-[3rem] p-6 md:p-10 flex-1 mb-6 md:mb-10 overflow-y-auto max-h-[300px]">
-                      <p className="text-[#111111] leading-relaxed font-bold text-sm md:text-xl italic opacity-85">
-                         {analysisResult}
-                      </p>
+                   <div className="bg-[#F9F9F9] rounded-2xl md:rounded-[3rem] p-6 md:p-10 flex-1 mb-6 md:mb-10 overflow-y-auto max-h-[300px] border border-secondary-100">
+                      <div className="text-[#111111] leading-relaxed font-bold text-sm md:text-lg markdown-body">
+                         <ReactMarkdown>{analysisResult || ''}</ReactMarkdown>
+                      </div>
                    </div>
 
                    <div className="grid grid-cols-2 gap-3 md:gap-5">

@@ -62,7 +62,8 @@ export default function ChatScreen() {
   const [loading, setLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [speechRate, setSpeechRate] = useState(1.0);
+  const { updateUser } = useAppStore();
+  const speechRate = user?.speechRate || 1.0;
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,26 +83,87 @@ export default function ChatScreen() {
     }
   }, [chatHistory, loading, isSpeaking]);
 
+  const speakQueue = useRef<SpeechSynthesisUtterance[]>([]);
+
   const handleSpeak = (text: string) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = speechRate;
-      if (user?.teacherPreference === 'Rohan') {
-        utterance.pitch = 0.85;
-      } else {
-        utterance.pitch = 1.15;
+      speakQueue.current = [];
+      setIsSpeaking(false);
+      
+      // 1. Clean markdown for clear speech
+      let cleanText = text
+        .replace(/\*\*/g, '') // bold
+        .replace(/\*/g, '')   // italics/lists
+        .replace(/#/g, '')    // headings
+        .replace(/_/g, '')    // underlines
+        .replace(/`/g, '')    // code
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links
+        .trim();
+        
+      if (!cleanText) return;
+
+      // 2. Break down into natural chunks (sentences)
+      // This forces the TTS engine to add natural pauses between sentences
+      const sentences = cleanText.match(/[^.!?\n]+[.!?\n]+/g) || [cleanText];
+      
+      // 3. Voice Selection Engine
+      const voices = window.speechSynthesis.getVoices();
+      const isMale = user?.teacherPreference === 'Rohan';
+      
+      // Target premium neural/natural voices first
+      const preferredNames = isMale 
+          ? ['Google UK English Male', 'Microsoft Mark', 'Microsoft David', 'Daniel', 'Alex', 'Male'] 
+          : ['Google UK English Female', 'Microsoft Zira', 'Google US English', 'Samantha', 'Karen', 'Victoria', 'Female'];
+          
+      let selectedVoice = voices.find(v => v.lang.startsWith('en-')) || voices[0];
+      for (const name of preferredNames) {
+         const match = voices.find(v => v.name.includes(name) || 
+            (name === 'Male' && v.name.toLowerCase().includes('male')) || 
+            (name === 'Female' && v.name.toLowerCase().includes('female')));
+         if (match) {
+             selectedVoice = match;
+             break;
+         }
       }
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      window.speechSynthesis.speak(utterance);
+
+      // 4. Queue chunks for smooth flowing speech
+      let actualChunks = 0;
+      sentences.forEach((sentence, index) => {
+        const chunk = sentence.trim();
+        if (!chunk) return;
+        actualChunks++;
+        
+        const utterance = new SpeechSynthesisUtterance(chunk);
+        if (selectedVoice) utterance.voice = selectedVoice;
+        
+        // Optimize pacing for a teaching/explaining style
+        utterance.rate = speechRate * 0.95; 
+        utterance.pitch = isMale ? 0.9 : 1.1;
+        
+        if (index === 0) {
+            utterance.onstart = () => setIsSpeaking(true);
+        }
+        if (index === sentences.length - 1) {
+            utterance.onend = () => setIsSpeaking(false);
+        }
+        utterance.onerror = () => {
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+        }
+        
+        speakQueue.current.push(utterance);
+        window.speechSynthesis.speak(utterance);
+      });
+      
+      if (actualChunks === 0) setIsSpeaking(false);
     }
   };
 
   const stopSpeaking = () => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
+      speakQueue.current = [];
       setIsSpeaking(false);
     }
   };
@@ -153,15 +215,14 @@ export default function ChatScreen() {
             
             <div className="hidden lg:flex flex-col gap-1 items-end mr-2">
                <span className="text-[8px] font-black uppercase text-secondary-300 tracking-widest leading-none">Voice Speed</span>
-               <select 
+                 <select 
                  className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none text-[#111111]"
                  value={speechRate}
-                 onChange={(e) => setSpeechRate(parseFloat(e.target.value))}
+                 onChange={(e) => updateUser({ speechRate: parseFloat(e.target.value) })}
                >
-                 <option value="0.5">Slow</option>
-                 <option value="1.0">Normal</option>
-                 <option value="1.2">Fast</option>
-                 <option value="1.5">Elite</option>
+                 <option value="0.8">0.8x (Relaxed)</option>
+                 <option value="1.0">1.0x (Normal)</option>
+                 <option value="1.2">1.2x (Brisk)</option>
                </select>
             </div>
 
@@ -201,6 +262,13 @@ export default function ChatScreen() {
                         
                         {msg.role === 'model' && (
                            <div className="flex justify-end mt-4 md:mt-8 gap-2">
+                              <button 
+                                 onClick={() => navigator.clipboard.writeText(msg.text)} 
+                                 className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-[#F9F9F9] flex items-center justify-center text-secondary-300 hover:text-[#111111] hover:bg-[#F7E58D] transition-all"
+                                 title="Copy Message"
+                              >
+                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 md:w-7 md:h-7"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                              </button>
                               <button onClick={() => handleSpeak(msg.text)} className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-[#F9F9F9] flex items-center justify-center text-secondary-300 hover:text-[#111111] hover:bg-[#F7E58D] transition-all">
                                  <Volume2 className="w-4 h-4 md:w-7 md:h-7" />
                               </button>

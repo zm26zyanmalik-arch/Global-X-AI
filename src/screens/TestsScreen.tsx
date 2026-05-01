@@ -43,17 +43,31 @@ const questionPool: Record<string, Record<string, Question[]>> = {
       { id: 'm1', text: 'What is the value of (x + y)²?', options: ['x² + y²', 'x² + 2xy + y²', 'x² - 2xy + y²', 'x² + xy + y²'], correctAnswer: 1 },
       { id: 'm2', text: 'In a circle, what is the ratio of circumference to diameter?', options: ['π', '2π', 'π/2', 'r'], correctAnswer: 0 },
       { id: 'm3', text: 'Solve for x: 3x - 5 = 10', options: ['3', '5', '15', '30'], correctAnswer: 1 },
+      { id: 'm4', text: 'What is the sum of angles in a triangle?', options: ['90°', '180°', '360°', '270°'], correctAnswer: 1 },
+      { id: 'm5', text: 'Which of the following is a prime number?', options: ['9', '15', '21', '23'], correctAnswer: 3 },
     ],
     'Science': [
       { id: 's1', text: 'Which organelle is known as the powerhouse of the cell?', options: ['Nucleus', 'Mitochondria', 'Ribosome', 'Golgi complex'], correctAnswer: 1 },
       { id: 's2', text: 'What is the chemical symbol for Gold?', options: ['Ag', 'Gd', 'Au', 'Fe'], correctAnswer: 2 },
       { id: 's3', text: 'Newton\'s first law is also known as the Law of?', options: ['Gravity', 'Inertia', 'Action', 'Motion'], correctAnswer: 1 },
+      { id: 's4', text: 'What gas do plants primarily absorb from the atmosphere?', options: ['Oxygen', 'Nitrogen', 'Carbon Dioxide', 'Hydrogen'], correctAnswer: 2 },
+      { id: 's5', text: 'What is the unit of force in the SI system?', options: ['Joule', 'Watt', 'Newton', 'Pascal'], correctAnswer: 2 },
     ]
   },
   '8': {
     'Mathematics': [
-      { id: 'm4', text: 'What is the square root of 144?', options: ['12', '14', '16', '18'], correctAnswer: 0 },
-      { id: 'm5', text: 'A triangle with all sides equal is called?', options: ['Isosceles', 'Scalene', 'Equilateral', 'Right'], correctAnswer: 2 },
+      { id: 'm4_8', text: 'What is the square root of 144?', options: ['12', '14', '16', '18'], correctAnswer: 0 },
+      { id: 'm5_8', text: 'A triangle with all sides equal is called?', options: ['Isosceles', 'Scalene', 'Equilateral', 'Right'], correctAnswer: 2 },
+      { id: 'm6_8', text: 'Solve 2x = 10', options: ['2', '5', '10', '20'], correctAnswer: 1 },
+      { id: 'm7_8', text: 'What is 15% of 200?', options: ['15', '30', '45', '60'], correctAnswer: 1 },
+      { id: 'm8_8', text: 'What is the area of a rectangle with length 5 and width 4?', options: ['9', '18', '20', '25'], correctAnswer: 2 },
+    ],
+    'Science': [
+      { id: 's1_8', text: 'What is the boiling point of water?', options: ['50°C', '90°C', '100°C', '120°C'], correctAnswer: 2 },
+      { id: 's2_8', text: 'Light year is a unit of?', options: ['Time', 'Distance', 'Speed', 'Mass'], correctAnswer: 1 },
+      { id: 's3_8', text: 'Which planet is known as the Red Planet?', options: ['Venus', 'Jupiter', 'Mars', 'Saturn'], correctAnswer: 2 },
+      { id: 's4_8', text: 'What is the primary source of energy for the Earth?', options: ['Moon', 'Stars', 'Sun', 'Geothermal'], correctAnswer: 2 },
+      { id: 's5_8', text: 'Sound cannot travel through?', options: ['Solid', 'Liquid', 'Gas', 'Vacuum'], correctAnswer: 3 },
     ]
   }
 };
@@ -106,7 +120,25 @@ export default function TestsScreen() {
 
   const [autoTest, setAutoTest] = useState<TestTemplate | null>(null);
 
-  // Auto-generate test logic
+  // Enhanced generator that picks a subject based on activity
+  const generateAutoTest = (studentClass: string): TestTemplate => {
+      const subjects = Object.keys(questionPool[studentClass] || {});
+      const subject = subjects[Math.floor(Math.random() * subjects.length)] || 'Mathematics';
+      
+      const pool = questionPool[studentClass]?.[subject] || [];
+      const questions = [...pool].sort(() => 0.5 - Math.random()).slice(0, 5);
+
+      return {
+         id: `auto-test-${Date.now()}`,
+         title: `Your 2-Day ${subject} Review`,
+         subject: subject,
+         questions: questions,
+         timeMins: 10,
+         difficulty: 'Medium',
+         points: 200
+      };
+  };
+
   useEffect(() => {
     if (results.length === 0) return;
     
@@ -115,25 +147,9 @@ export default function TestsScreen() {
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
 
     if (last < twoDaysAgo) {
-      // Trigger generator
-      const generate = async () => {
-        // Query recent logs or just use subjects with progress
-        const template: TestTemplate = {
-           id: 'auto-test',
-           title: 'Your 2-Day Review Assessment',
-           subject: 'Mathematics', // Simple version, could iterate subjects
-           questions: questionPool[user?.class || '9']['Mathematics'].slice(0, 5),
-           timeMins: 10,
-           difficulty: 'Medium',
-           points: 200
-        };
-        setAutoTest(template);
-      };
-      generate();
+      setAutoTest(generateAutoTest(user?.class || '9'));
     }
   }, [results, user]);
-
-  // Filter templates based on user class and pool availability
   const availableTemplates = useMemo(() => {
     const userClass = user?.class || '9';
     let templatesToUse = templates.map(t => {

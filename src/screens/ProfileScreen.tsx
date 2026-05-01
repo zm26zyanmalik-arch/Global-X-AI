@@ -114,32 +114,71 @@ export default function ProfileScreen() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
          <div className="space-y-4">
             <h3 className="font-black text-[#111111] text-xl ml-2 mb-6">Learning Settings</h3>
-            {[
-               { icon: Bell, label: 'Notifications', value: 'Enabled' },
-               { icon: ShieldCheck, label: 'Privacy Vault', value: 'Secured' },
-               { icon: Globe2, label: 'App Language', value: 'English' },
-            ].map((item, i) => (
-               <motion.div key={i} whileTap={{ scale: 0.98 }} className="bg-[#F9F9F9] border-2 border-transparent hover:border-[#111111] rounded-[2rem] p-6 flex items-center justify-between cursor-pointer transition-all group">
-                  <div className="flex items-center gap-4">
-                     <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-[#111111] shadow-sm transform group-hover:rotate-6 transition-transform">
-                        <item.icon className="w-6 h-6" />
-                     </div>
-                     <span className="font-black text-[#111111] text-lg">{item.label}</span>
+            
+            {/* Notifications Toggle */}
+            <motion.div whileTap={{ scale: 0.98 }} onClick={() => updateUser({ notificationsEnabled: !user?.notificationsEnabled })} className="bg-[#F9F9F9] border-2 border-transparent hover:border-[#111111] rounded-[2rem] p-6 flex items-center justify-between cursor-pointer transition-all group">
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-[#111111] shadow-sm transform group-hover:rotate-6 transition-transform">
+                     <Bell className="w-6 h-6" />
                   </div>
-                  <div className="flex items-center gap-3">
-                     <span className="text-xs font-black text-secondary-300 uppercase tracking-widest">{item.value}</span>
-                     <ChevronRight className="w-5 h-5 text-secondary-200" />
+                  <span className="font-black text-[#111111] text-lg">Notifications</span>
+               </div>
+               <div className="flex items-center gap-3">
+                  <span className={`text-xs font-black uppercase tracking-widest ${user?.notificationsEnabled !== false ? 'text-green-500' : 'text-secondary-300'}`}>
+                     {user?.notificationsEnabled !== false ? 'Enabled' : 'Disabled'}
+                  </span>
+                  <div className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${user?.notificationsEnabled !== false ? 'bg-green-500' : 'bg-gray-300'}`}>
+                     <div className={`w-4 h-4 bg-white rounded-full transition-transform ${user?.notificationsEnabled !== false ? 'translate-x-4' : 'translate-x-0'}`} />
                   </div>
-               </motion.div>
-            ))}
+               </div>
+            </motion.div>
+
+            {/* Sound Toggle */}
+            <motion.div whileTap={{ scale: 0.98 }} onClick={() => updateUser({ soundEnabled: !user?.soundEnabled })} className="bg-[#F9F9F9] border-2 border-transparent hover:border-[#111111] rounded-[2rem] p-6 flex items-center justify-between cursor-pointer transition-all group">
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-[#111111] shadow-sm transform group-hover:rotate-6 transition-transform">
+                     <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <span className="font-black text-[#111111] text-lg">App Sound</span>
+               </div>
+               <div className="flex items-center gap-3">
+                  <span className={`text-xs font-black uppercase tracking-widest ${user?.soundEnabled !== false ? 'text-green-500' : 'text-secondary-300'}`}>
+                     {user?.soundEnabled !== false ? 'Enabled' : 'Disabled'}
+                  </span>
+                  <div className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${user?.soundEnabled !== false ? 'bg-green-500' : 'bg-gray-300'}`}>
+                     <div className={`w-4 h-4 bg-white rounded-full transition-transform ${user?.soundEnabled !== false ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </div>
+               </div>
+            </motion.div>
+
+            {/* Language Selection */}
+            <motion.div whileTap={{ scale: 0.98 }} className="bg-[#F9F9F9] border-2 border-transparent hover:border-[#111111] rounded-[2rem] p-6 flex items-center justify-between cursor-pointer transition-all group">
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-[#111111] shadow-sm transform group-hover:rotate-6 transition-transform">
+                     <Globe2 className="w-6 h-6" />
+                  </div>
+                  <span className="font-black text-[#111111] text-lg">App Language</span>
+               </div>
+               <div className="flex items-center gap-3">
+                  <select 
+                     value={user?.language || 'English'}
+                     onChange={(e) => updateUser({ language: e.target.value })}
+                     className="bg-transparent text-xs font-black text-secondary-500 uppercase tracking-widest outline-none cursor-pointer text-right appearance-none"
+                  >
+                     <option value="English">English</option>
+                     <option value="Hindi">Hindi</option>
+                     <option value="Urdu">Urdu</option>
+                  </select>
+                  <ChevronRight className="w-5 h-5 text-secondary-200" />
+               </div>
+            </motion.div>
          </div>
 
          <div className="space-y-4">
             <h3 className="font-black text-[#111111] text-xl ml-2 mb-6">Subscription & Account</h3>
             {[
-               { icon: CreditCard, label: 'Premium Plan', value: 'Elite Explorer' },
-               { icon: Settings, label: 'System Prefs', value: null },
-               { icon: Mail, label: 'Email Center', value: 'Verified' },
+               { icon: CreditCard, label: 'Premium Plan', value: 'Elite Explorer', active: true },
+               { icon: Mail, label: 'Email Center', value: 'Verified', active: false },
             ].map((item, i) => (
                <motion.div key={i} whileTap={{ scale: 0.98 }} className="bg-[#F9F9F9] border-2 border-transparent hover:border-[#111111] rounded-[2rem] p-6 flex items-center justify-between cursor-pointer transition-all group">
                   <div className="flex items-center gap-4">
@@ -149,11 +188,22 @@ export default function ProfileScreen() {
                      <span className="font-black text-[#111111] text-lg">{item.label}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                     {item.value && <span className="text-xs font-black text-secondary-300 uppercase tracking-widest">{item.value}</span>}
-                     <ChevronRight className="w-5 h-5 text-secondary-200" />
+                     {item.value && <span className={`text-xs font-black uppercase tracking-widest ${item.active ? 'text-[#F7E58D]' : 'text-secondary-300'}`}>
+                        {item.value}
+                     </span>}
                   </div>
                </motion.div>
             ))}
+
+            {/* Data Reset Options */}
+            <motion.div whileTap={{ scale: 0.98 }} onClick={logout} className="bg-red-50 border-2 border-transparent hover:border-red-500 rounded-[2rem] p-6 flex items-center justify-between cursor-pointer transition-all group mt-6">
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-red-500 shadow-sm transform group-hover:rotate-6 transition-transform">
+                     <LogOut className="w-6 h-6" />
+                  </div>
+                  <span className="font-black text-red-500 text-lg">Sign Out</span>
+               </div>
+            </motion.div>
          </div>
       </div>
 

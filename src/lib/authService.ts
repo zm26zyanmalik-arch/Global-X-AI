@@ -21,6 +21,7 @@ export interface UserProfile {
   chaptersCompleted: number;
   streak: number;
   points: number;
+  speechRate?: number;
 }
 
 export const googleProvider = new GoogleAuthProvider();
@@ -61,10 +62,12 @@ export async function createUserProfile(uid: string, profile: Partial<UserProfil
       language: profile.language || 'English',
       teacherChoice: profile.teacherChoice || 'Priya',
       createdAt: serverTimestamp(),
+      lastActivityAt: serverTimestamp(),
       timeStudiedMins: 0,
       chaptersCompleted: 0,
       streak: 0,
       points: 0,
+      speechRate: 1.0,
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, path);

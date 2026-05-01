@@ -21,19 +21,21 @@ service cloud.firestore {
 
     function isValidUser(data) {
       return data.keys().hasAll(['name', 'email', 'class', 'language', 'teacherChoice', 'createdAt', 'timeStudiedMins', 'chaptersCompleted', 'streak', 'points', 'lastActivityAt'])
-        && data.keys().size() == 11
         && data.name is string && data.name.size() > 0 && data.name.size() <= 100
         && data.email is string && data.email.size() > 0 && data.email.size() <= 200
         && data.class is string && data.class.size() > 0 && data.class.size() <= 50
         && data.language is string && data.language.size() > 0 && data.language.size() <= 50
         && data.teacherChoice is string && data.teacherChoice.size() > 0 && data.teacherChoice.size() <= 50
         && data.createdAt is timestamp
+        && data.lastActivityAt is timestamp
         && data.timeStudiedMins is number && data.timeStudiedMins >= 0
         && data.chaptersCompleted is number && data.chaptersCompleted >= 0
         && data.streak is number && data.streak >= 0
         && data.points is number && data.points >= 0
-        && (data.lastActivityAt == null || data.lastActivityAt is timestamp)
-        && data.email == request.auth.token.email;
+        && data.email == request.auth.token.email
+        && (!('notificationsEnabled' in data) || data.notificationsEnabled is bool)
+        && (!('soundEnabled' in data) || data.soundEnabled is bool)
+        && (!('speechRate' in data) || data.speechRate is number);
     }
 
     match /users/{userId} {
@@ -42,13 +44,14 @@ service cloud.firestore {
                     && isValidId(userId)
                     && isValidUser(incoming())
                     && incoming().createdAt == request.time
+                    && incoming().lastActivityAt == request.time
                     && incoming().timeStudiedMins == 0
                     && incoming().chaptersCompleted == 0
                     && incoming().streak == 0
                     && incoming().points == 0;
       allow update: if isOwner(userId)
                     && isValidId(userId)
-                    && incoming().diff(existing()).affectedKeys().hasOnly(['timeStudiedMins', 'chaptersCompleted', 'streak', 'points', 'class', 'language', 'teacherChoice', 'name', 'lastActivityAt'])
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['timeStudiedMins', 'chaptersCompleted', 'streak', 'points', 'class', 'language', 'teacherChoice', 'name', 'lastActivityAt', 'notificationsEnabled', 'soundEnabled', 'speechRate'])
                     && incoming().createdAt == existing().createdAt
                     && incoming().email == existing().email
                     && incoming().name is string && incoming().name.size() <= 100
@@ -58,7 +61,10 @@ service cloud.firestore {
                     && incoming().timeStudiedMins is number && incoming().timeStudiedMins >= 0
                     && incoming().chaptersCompleted is number && incoming().chaptersCompleted >= 0
                     && incoming().streak is number && incoming().streak >= 0
-                    && incoming().points is number && incoming().points >= 0;
+                    && incoming().points is number && incoming().points >= 0
+                    && (!('notificationsEnabled' in incoming()) || incoming().notificationsEnabled is bool)
+                    && (!('soundEnabled' in incoming()) || incoming().soundEnabled is bool)
+                    && (!('speechRate' in incoming()) || incoming().speechRate is number);
       
       match /chats/{chatId} {
         allow read, list: if isOwner(userId);

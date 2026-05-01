@@ -27,5 +27,5 @@ export const getStudySessions = async (userId: string) => {
     orderBy('createdAt', 'desc')
   );
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as StudySessionLog));
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as unknown as StudySessionLog));
 };

@@ -10,6 +10,9 @@ export interface User {
   class: string;
   teacherPreference: 'Rohan' | 'Priya';
   language: string;
+  soundEnabled?: boolean;
+  notificationsEnabled?: boolean;
+  speechRate?: number;
 }
 
 export interface SubjectProgress {
