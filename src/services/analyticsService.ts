@@ -1,6 +1,3 @@
-import { db } from '../lib/firebase';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy } from 'firebase/firestore';
-
 export interface StudySessionLog {
   userId: string;
   subjectId: string;
@@ -8,24 +5,24 @@ export interface StudySessionLog {
   createdAt: any;
 }
 
+// Simulate sessions for local-only analytics since Firebase is removed
 export const logStudySession = async (userId: string, subjectId: string, durationSeconds: number) => {
-  try {
-    await addDoc(collection(db, 'users', userId, 'studySessions'), {
-      userId,
-      subjectId,
-      durationSeconds,
-      createdAt: serverTimestamp(),
-    });
-  } catch (error) {
-    console.error('Error logging study session:', error);
-  }
+  console.log(`Logged ${durationSeconds}s for ${subjectId}`);
 };
 
 export const getStudySessions = async (userId: string) => {
-  const q = query(
-    collection(db, 'users', userId, 'studySessions'),
-    orderBy('createdAt', 'desc')
-  );
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as unknown as StudySessionLog));
+  // Return some fake session data for the graph
+  const today = new Date();
+  const sessions: StudySessionLog[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(today.getDate() - i);
+    sessions.push({
+      userId,
+      subjectId: 'Maths',
+      durationSeconds: Math.floor(Math.random() * 3600), // up to 60 mins
+      createdAt: { toDate: () => d }
+    });
+  }
+  return sessions;
 };

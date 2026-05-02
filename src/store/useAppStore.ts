@@ -1,7 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { db } from '../lib/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 export interface User {
   id: string;
@@ -56,14 +54,14 @@ export interface PlannerTask {
 }
 
 interface AppStore {
-  user: User | null;
+  user: User;
   progress: Progress;
   chatHistory: ChatMessage[];
   isAuthReady: boolean;
   activeSession: StudySession | null;
   planner: PlannerTask[];
   setAuthReady: (ready: boolean) => void;
-  setUser: (user: User | null) => void;
+  setUser: (user: User) => void;
   setProgress: (progress: Progress) => void;
   logout: () => void;
   addProgress: (mins: number, chapters: number, points: number) => void;
@@ -79,6 +77,7 @@ interface AppStore {
   generatePlanner: (studentClass: string) => void;
   completeTask: (taskId: string) => void;
   updateUser: (data: Partial<User>) => void;
+  restoreData: (progress: Progress, chatHistory: ChatMessage[], planner: PlannerTask[]) => void;
 }
 
 const initialProgress: Progress = {
@@ -88,19 +87,32 @@ const initialProgress: Progress = {
   timeStudiedMins: 0,
 };
 
+const defaultUser: User = {
+  id: 'guest',
+  name: 'Student',
+  email: 'student@example.com',
+  class: '9',
+  teacherPreference: 'Priya',
+  language: 'English',
+  soundEnabled: true,
+  notificationsEnabled: true,
+  speechRate: 1.0,
+};
+
 export const useAppStore = create<AppStore>()(
   persist(
     (set, get) => ({
-      user: null,
+      user: defaultUser,
       progress: initialProgress,
       chatHistory: [],
-      isAuthReady: false,
+      isAuthReady: true, // we can default this to true now
       activeSession: null,
       planner: [],
       setAuthReady: (ready) => set({ isAuthReady: ready }),
       setUser: (user) => set({ user }),
       setProgress: (progress) => set({ progress }),
-      logout: () => set({ user: null, progress: initialProgress, chatHistory: [], activeSession: null, planner: [] }),
+      logout: () => set({ user: defaultUser, progress: initialProgress, chatHistory: [], activeSession: null, planner: [] }),
+      restoreData: (progress, chatHistory, planner) => set({ progress, chatHistory, planner }),
       addProgress: (mins, chapters, points) => set((state) => {
         return {
           progress: {
@@ -200,13 +212,6 @@ export const useAppStore = create<AppStore>()(
         
         state.updateSubjectProgress(state.activeSession.subjectId, finalElapsed);
         
-        // Log to Firebase
-        if (state.user?.id) {
-            import('../services/analyticsService').then(service => {
-                service.logStudySession(state.user!.id, state.activeSession!.subjectId, finalElapsed);
-            });
-        }
-        
         // Award points
         // If completion bonus was already given in tickSession, we don't give it here
         // But wait, tickSession now only marks it as completed in my refined logic? 
@@ -295,17 +300,6 @@ export const useAppStore = create<AppStore>()(
 
         const updatedUser = { ...state.user, ...data };
         set({ user: updatedUser });
-
-        try {
-          const userRef = doc(db, 'users', state.user.id);
-          await updateDoc(userRef, {
-             ...data,
-             lastActivityAt: serverTimestamp()
-          });
-        } catch (error) {
-          console.error('Error updating profile in Firestore:', error);
-          // Optionally rollback state or show error
-        }
       }
     }),
     {

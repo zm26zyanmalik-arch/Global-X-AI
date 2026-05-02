@@ -8,7 +8,6 @@ import { useAppStore } from './store/useAppStore';
 import { Home, MessageSquare, BookOpen, Camera, UserCircle2, BarChart, FileText, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import ChatScreen from './screens/ChatScreen';
 import StudyScreen from './screens/StudyScreen';
@@ -33,10 +32,6 @@ export default function App() {
     }, 1000);
     return () => clearInterval(interval);
   }, [activeSession, tickSession]);
-
-  if (!user) {
-    return <LoginScreen />;
-  }
 
   const renderScreen = () => {
     switch (currentTab) {

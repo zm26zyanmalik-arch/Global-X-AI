@@ -1,20 +1,12 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent } from '../components/ui/card';
 import { useAppStore } from '../store/useAppStore';
+import { useTestsStore } from '../store/useTestsStore';
 import { CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import { TrendingUp, Clock, Award, Brain, Flame, Target, Sparkles, ChevronRight, MessageCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { getStudySessions, StudySessionLog } from '../services/analyticsService';
-
-interface TestResult {
-  id: string;
-  subject: string;
-  score: number;
-  submittedAt: any;
-}
 
 const subjectNames: Record<string, { label: string, color: string }> = {
   Maths: { label: 'Mathematics', color: '#F7E58D' },
@@ -52,27 +44,15 @@ const ProgressRing = ({ progress, size = 180, strokeWidth = 16, color = "#F7E58D
 
 export default function AnalyticsScreen() {
   const { user, progress } = useAppStore();
-  const [testResults, setTestResults] = useState<TestResult[]>([]);
+  const { results: testResults } = useTestsStore();
   const [analyticsData, setAnalyticsData] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchAnalytics() {
-      if (!auth.currentUser) return;
-      
-      const resultsRef = collection(db, 'users', auth.currentUser.uid, 'testResults');
-      const q = query(resultsRef, orderBy('submittedAt', 'desc'), limit(10));
+      if (!user) return;
       
       try {
-        const [querySnapshot, sessions] = await Promise.all([
-            getDocs(q),
-            getStudySessions(auth.currentUser.uid)
-        ]);
-
-        const results = querySnapshot.docs.map(doc => ({
-           id: doc.id,
-           ...doc.data()
-        })) as TestResult[];
-        setTestResults(results);
+        const sessions = await getStudySessions(user.id);
 
         // Compute actual activity data from sessions
         const activityMap: Record<string, number> = {};

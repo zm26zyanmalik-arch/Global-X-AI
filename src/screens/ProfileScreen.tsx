@@ -6,6 +6,7 @@ import { useState } from 'react';
 
 export default function ProfileScreen() {
   const { user, logout, updateUser } = useAppStore();
+  
   const [showTeacherSelect, setShowTeacherSelect] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -45,13 +46,6 @@ export default function ProfileScreen() {
             ) : (
                <Button onClick={() => setIsEditing(true)} variant="ghost" className="rounded-2xl px-6 h-14 font-black text-[#111111] bg-[#F9F9F9] border-2 border-transparent hover:border-[#111111]">Edit Profile</Button>
             )}
-            <Button 
-               onClick={logout}
-               variant="ghost" 
-               className="rounded-2xl px-6 h-14 font-black text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-2"
-            >
-               <LogOut className="w-5 h-5" /> Logout
-            </Button>
          </div>
       </div>
 
@@ -201,7 +195,7 @@ export default function ProfileScreen() {
                   <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-red-500 shadow-sm transform group-hover:rotate-6 transition-transform">
                      <LogOut className="w-6 h-6" />
                   </div>
-                  <span className="font-black text-red-500 text-lg">Sign Out</span>
+                  <span className="font-black text-red-500 text-lg">Reset Data</span>
                </div>
             </motion.div>
          </div>

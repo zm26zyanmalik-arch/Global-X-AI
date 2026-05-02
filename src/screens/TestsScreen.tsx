@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '../components/ui/button';
 import { useAppStore } from '../store/useAppStore';
+import { useTestsStore, TestResult } from '../store/useTestsStore';
 import { CheckCircle2, PlayCircle, Trophy, Target, AlertCircle, Sparkles, ChevronRight, X, Timer, Zap, BarChart3, Star, Lock, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { collection, query, getDocs, addDoc, serverTimestamp, orderBy, where, onSnapshot } from 'firebase/firestore';
 
 interface Question {
   id: string;
@@ -21,19 +20,6 @@ interface TestTemplate {
   timeMins: number;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   points: number;
-}
-
-interface TestResult {
-  id: string;
-  templateId: string;
-  title: string;
-  subject: string;
-  score: number;
-  totalQuestions: number;
-  correctAnswers: number;
-  submittedAt: any;
-  resultAvailableAt: any;
-  status: 'pending' | 'ready';
 }
 
 // Intelligent Question Pool (Subset for demo, typically would be larger)
@@ -80,42 +66,20 @@ const templates: TestTemplate[] = [
 
 export default function TestsScreen() {
   const { user, progress } = useAppStore();
+  const { results, addResult, updateStatuses } = useTestsStore();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'completed'>('upcoming');
   const [takingTest, setTakingTest] = useState<TestTemplate | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [results, setResults] = useState<TestResult[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [lastScore, setLastScore] = useState(0);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
-
-    const q = query(
-      collection(db, 'users', auth.currentUser.uid, 'testResults'),
-      orderBy('submittedAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedResults = snapshot.docs.map(doc => {
-         const data = doc.data();
-         const now = new Date();
-         const availableAt = data.resultAvailableAt?.toDate();
-         return {
-            id: doc.id,
-            ...data,
-            status: availableAt && availableAt > now ? 'pending' : 'ready'
-         };
-      }) as TestResult[];
-      setResults(fetchedResults);
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'testResults');
-    });
-
-    return () => unsubscribe();
+     updateStatuses();
+     const int = setInterval(updateStatuses, 60000);
+     return () => clearInterval(int);
   }, []);
 
   const [autoTest, setAutoTest] = useState<TestTemplate | null>(null);
@@ -142,7 +106,7 @@ export default function TestsScreen() {
   useEffect(() => {
     if (results.length === 0) return;
     
-    const last = results[0].submittedAt?.toDate();
+    const last = new Date(results[0].submittedAt);
     const twoDaysAgo = new Date();
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
 
@@ -183,7 +147,7 @@ export default function TestsScreen() {
   }, [takingTest, timeLeft]);
 
   const submitTest = async () => {
-    if (!takingTest || !auth.currentUser) return;
+    if (!takingTest) return;
 
     let correct = 0;
     takingTest.questions.forEach((q, i) => {
@@ -191,30 +155,25 @@ export default function TestsScreen() {
     });
 
     const score = Math.round((correct / takingTest.questions.length) * 100);
-    const now = new Date();
-    const availableAt = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour delay
+    const now = Date.now();
+    const availableAt = now + 60 * 60 * 1000; // 1 hour delay
 
     const resultData = {
-      userId: auth.currentUser.uid,
       templateId: takingTest.id,
       title: takingTest.title,
       subject: takingTest.subject,
       score,
       totalQuestions: takingTest.questions.length,
       correctAnswers: correct,
-      submittedAt: serverTimestamp(),
+      submittedAt: now,
       resultAvailableAt: availableAt,
     };
 
-    try {
-      await addDoc(collection(db, 'users', auth.currentUser.uid, 'testResults'), resultData);
-      setLastScore(score);
-      setTakingTest(null);
-      setShowCelebration(true);
-      setActiveTab('completed');
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'testResults');
-    }
+    addResult(resultData);
+    setLastScore(score);
+    setTakingTest(null);
+    setShowCelebration(true);
+    setActiveTab('completed');
   };
 
   const stats = useMemo(() => [

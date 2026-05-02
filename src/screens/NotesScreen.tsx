@@ -1,34 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { FileText, Search, Plus, Sparkles, Download, Trash2, ChevronRight, X, Clock, Eye, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { 
-  collection, 
-  query, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  serverTimestamp, 
-  orderBy 
-} from 'firebase/firestore';
+import { useNotesStore, Note } from '../store/useNotesStore';
 import { jsPDF } from 'jspdf';
 
-interface Note {
-  id: string;
-  title: string;
-  content: string;
-  subject: string;
-  createdAt: any;
-  updatedAt: any;
-  userId: string;
-}
-
 export default function NotesScreen() {
-  const [notes, setNotes] = useState<Note[]>([]);
+  const { notes, addNote, updateNote, deleteNote } = useNotesStore();
   const [activeSubject, setActiveSubject] = useState('All');
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,71 +18,30 @@ export default function NotesScreen() {
   const [newNote, setNewNote] = useState({ title: '', content: '', subject: 'Science' });
   const [editNote, setEditNote] = useState<Partial<Note> | null>(null);
 
-  useEffect(() => {
-    if (!auth.currentUser) return;
-
-    const notesRef = collection(db, 'users', auth.currentUser.uid, 'notes');
-    const q = query(notesRef, orderBy('updatedAt', 'desc'));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const notesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Note[];
-      setNotes(notesData);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, `users/${auth.currentUser?.uid}/notes`);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const handleCreateNote = async () => {
-    if (!auth.currentUser || !newNote.title || !newNote.content) return;
+  const handleCreateNote = () => {
+    if (!newNote.title || !newNote.content) return;
     
-    const path = `users/${auth.currentUser.uid}/notes`;
-    try {
-      await addDoc(collection(db, path), {
-        userId: auth.currentUser.uid,
-        title: newNote.title,
-        content: newNote.content,
-        subject: newNote.subject,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-      setIsCreating(false);
-      setNewNote({ title: '', content: '', subject: 'Science' });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
-    }
+    addNote({
+      title: newNote.title,
+      content: newNote.content,
+      subject: newNote.subject
+    });
+    setIsCreating(false);
+    setNewNote({ title: '', content: '', subject: 'Science' });
   };
 
-  const handleUpdateNote = async () => {
-    if (!auth.currentUser || !selectedNote || !editNote) return;
+  const handleUpdateNote = () => {
+    if (!selectedNote || !editNote) return;
 
-    const path = `users/${auth.currentUser.uid}/notes/${selectedNote.id}`;
-    try {
-      await updateDoc(doc(db, path), {
-        ...editNote,
-        updatedAt: serverTimestamp()
-      });
-      setSelectedNote(prev => prev ? { ...prev, ...editNote } : null);
-      setEditNote(null);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
-    }
+    updateNote(selectedNote.id, editNote);
+    setSelectedNote(prev => prev ? { ...prev, ...editNote, updatedAt: Date.now() } : null);
+    setEditNote(null);
   };
 
-  const handleDeleteNote = async (id: string) => {
-    if (!auth.currentUser || !window.confirm('Delete this note permanently?')) return;
-
-    const path = `users/${auth.currentUser.uid}/notes/${id}`;
-    try {
-      await deleteDoc(doc(db, path));
-      setSelectedNote(null);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, path);
-    }
+  const handleDeleteNote = (id: string) => {
+    if (!window.confirm('Delete this note permanently?')) return;
+    deleteNote(id);
+    setSelectedNote(null);
   };
 
   const downloadPDF = (note: Note) => {
@@ -115,7 +53,7 @@ export default function NotesScreen() {
     
     doc.setFontSize(10);
     doc.setTextColor(150);
-    doc.text(`Subject: ${note.subject} | Created: ${note.createdAt?.toDate?.()?.toLocaleDateString() || 'N/A'}`, 20, 30);
+    doc.text(`Subject: ${note.subject} | Created: ${new Date(note.createdAt).toLocaleDateString()}`, 20, 30);
     
     doc.setDrawColor(247, 229, 141);
     doc.setLineWidth(1);
@@ -214,7 +152,7 @@ export default function NotesScreen() {
                            {note.subject}
                         </div>
                         <div className="text-[10px] font-black text-secondary-300 uppercase tracking-widest flex items-center gap-1.5">
-                           <Clock className="w-3 h-3" /> {note.updatedAt?.toDate()?.toLocaleDateString() || 'Just now'}
+                           <Clock className="w-3 h-3" /> {new Date(note.updatedAt).toLocaleDateString()}
                         </div>
                      </div>
 
@@ -274,7 +212,7 @@ export default function NotesScreen() {
                   <div className="p-8 md:p-16 flex-1 overflow-y-auto min-h-[400px]">
                      <div className="max-w-3xl mx-auto space-y-8">
                         <div className="flex items-center gap-4 text-secondary-400 font-black uppercase text-[10px] tracking-widest">
-                           <div className="flex items-center gap-2"><Clock className="w-4 h-4" /> Updated: {selectedNote.updatedAt?.toDate()?.toLocaleString()}</div>
+                           <div className="flex items-center gap-2"><Clock className="w-4 h-4" /> Updated: {new Date(selectedNote.updatedAt).toLocaleString()}</div>
                            <div className="bg-secondary-50 px-3 py-1 rounded-full">{selectedNote.subject}</div>
                         </div>
 
