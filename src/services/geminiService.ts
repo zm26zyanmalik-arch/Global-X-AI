@@ -1,15 +1,20 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const apiKey = process.env.GEMINI_API_KEY;
+const apiKey =
+  import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 const ai = new GoogleGenAI({ apiKey: apiKey || "dummy-key" }); // Provide fallback for types, but shouldn't be used empty.
 
 const modelName = "gemini-2.5-flash";
 
-export type TeacherPersonality = 'Rohan' | 'Priya';
+export type TeacherPersonality = "Rohan" | "Priya";
 
-const getSystemInstruction = (teacher: TeacherPersonality, studentName: string, studentClass: string) => `
+const getSystemInstruction = (
+  teacher: TeacherPersonality,
+  studentName: string,
+  studentClass: string,
+) => `
 You are ${teacher}, a world-class AI teacher on the Global X AI platform. 
-${teacher === 'Rohan' ? 'You have a professional, confident, smart, and encouraging male presence.' : 'You have a warm, supportive, clear, and professional female presence.'}
+${teacher === "Rohan" ? "You have a professional, confident, smart, and encouraging male presence." : "You have a warm, supportive, clear, and professional female presence."}
 You are teaching ${studentName}, who is in class ${studentClass}. 
 
 Rules:
@@ -23,34 +28,42 @@ Rules:
 `;
 
 export async function askTeacher(
-  teacher: TeacherPersonality, 
-  studentName: string, 
-  studentClass: string, 
+  teacher: TeacherPersonality,
+  studentName: string,
+  studentClass: string,
   message: string,
-  history: {role: 'user' | 'model', parts: {text: string}[]}[] = []
+  history: { role: "user" | "model"; parts: { text: string }[] }[] = [],
 ) {
   try {
     const chat = ai.chats.create({
       model: modelName,
       config: {
-        systemInstruction: getSystemInstruction(teacher, studentName, studentClass),
+        systemInstruction: getSystemInstruction(
+          teacher,
+          studentName,
+          studentClass,
+        ),
         temperature: 0.7,
-      }
+      },
     });
-    
+
     // We can't directly inject history into chat.create in the new SDK easily unless we use the standard generateContent with history.
     // Instead, let's use generateContent directly.
-    const contents = [...history, { role: 'user', parts: [{ text: message }] }];
-    
+    const contents = [...history, { role: "user", parts: [{ text: message }] }];
+
     const response = await ai.models.generateContent({
       model: modelName,
       contents,
       config: {
-         systemInstruction: getSystemInstruction(teacher, studentName, studentClass),
-         temperature: 0.7,
-      }
+        systemInstruction: getSystemInstruction(
+          teacher,
+          studentName,
+          studentClass,
+        ),
+        temperature: 0.7,
+      },
     });
-    
+
     return response.text || "I'm sorry, I couldn't process that.";
   } catch (err: any) {
     console.error("Gemini API Error:", err);
@@ -64,10 +77,12 @@ export async function quickScanQuestion(base64Image: string, mimeType: string) {
       model: "gemini-2.5-flash",
       contents: {
         parts: [
-          { inlineData: { data: base64Image.split(',')[1], mimeType } },
-          { text: "Solve this question step-by-step clearly. Explain the concepts used." }
-        ]
-      }
+          { inlineData: { data: base64Image.split(",")[1], mimeType } },
+          {
+            text: "Solve this question step-by-step clearly. Explain the concepts used.",
+          },
+        ],
+      },
     });
     return response.text || "Could not analyze the image.";
   } catch (err) {
@@ -77,34 +92,37 @@ export async function quickScanQuestion(base64Image: string, mimeType: string) {
 }
 
 export async function generateSmartSummary(text: string) {
-   const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Please provide a smart, structured summary of the following text, ideal for a student: \n\n${text}`,
-   });
-   return response.text;
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: `Please provide a smart, structured summary of the following text, ideal for a student: \n\n${text}`,
+  });
+  return response.text;
 }
 
 export async function generateQuiz(topic: string, studentClass: string) {
-   const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Generate a 3-question multiple choice quiz about ${topic} for a class ${studentClass} student.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-             type: Type.OBJECT,
-             properties: {
-                question: { type: Type.STRING },
-                options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                answerKey: { type: Type.STRING, description: "The exact matching string from options" },
-                explanation: { type: Type.STRING }
-             },
-             required: ["question", "options", "answerKey", "explanation"]
-          }
-        }
-      }
-   });
-   
-   return JSON.parse(response.text || "[]");
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: `Generate a 3-question multiple choice quiz about ${topic} for a class ${studentClass} student.`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            question: { type: Type.STRING },
+            options: { type: Type.ARRAY, items: { type: Type.STRING } },
+            answerKey: {
+              type: Type.STRING,
+              description: "The exact matching string from options",
+            },
+            explanation: { type: Type.STRING },
+          },
+          required: ["question", "options", "answerKey", "explanation"],
+        },
+      },
+    },
+  });
+
+  return JSON.parse(response.text || "[]");
 }

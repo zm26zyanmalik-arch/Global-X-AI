@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface TestResult {
   id: string;
@@ -47,7 +47,33 @@ export const useTestsStore = create<TestsStore>()(
       clearData: () => set({ results: [] })
     }),
     {
-      name: 'tests-storage',
+      name: 'global-tests-isolation',
+      storage: createJSONStorage(() => ({
+        getItem: () => {
+          const raw = localStorage.getItem('global_x_data_isolation');
+          if (!raw) return null;
+          try {
+             const isolated = JSON.parse(raw);
+             return JSON.stringify({
+                state: { results: isolated.tests?.results || [] },
+                version: 0
+             });
+          } catch(e) { return null; }
+        },
+        setItem: (_, value) => {
+          try {
+             const { state } = JSON.parse(value);
+             const isolatedRaw = localStorage.getItem('global_x_data_isolation');
+             const isolated = isolatedRaw ? JSON.parse(isolatedRaw) : {};
+             const finalSave = {
+                ...isolated,
+                tests: { results: state.results }
+             };
+             localStorage.setItem('global_x_data_isolation', JSON.stringify(finalSave));
+          } catch (e) {}
+        },
+        removeItem: () => {}
+      })),
     }
   )
 );

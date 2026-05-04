@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useAppStore, ChatMessage } from '../store/useAppStore';
 import { askTeacher } from '../services/geminiService';
 import { Button } from '../components/ui/button';
-import { Send, Camera, Mic, Volume2, StopCircle, Sparkles, ChevronLeft, Trash2, Search, Settings2, MoreVertical, Paperclip } from 'lucide-react';
+import { Send, Mic, Volume2, StopCircle, Sparkles, ChevronLeft, Trash2, Search, Settings2, MoreVertical, Paperclip } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -190,6 +190,36 @@ export default function ChatScreen() {
     }
   };
 
+  const handleMicClick = () => {
+    if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
+       alert("Speech recognition is not supported in this browser.");
+       return;
+    }
+    
+    if (isListening) {
+       setIsListening(false);
+       return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (event: any) => {
+       const transcript = Array.from(event.results)
+         .map((result: any) => result[0])
+         .map((result: any) => result.transcript)
+         .join('');
+       setInput(transcript);
+    };
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+    
+    recognition.start();
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#F9F9F9] relative overflow-hidden">
       
@@ -306,7 +336,7 @@ export default function ChatScreen() {
                <Paperclip className="w-5 h-5 md:w-8 md:h-8" />
             </button>
 
-            <button className={`w-12 h-12 md:w-20 md:h-20 rounded-2xl md:rounded-[2.5rem] flex items-center justify-center transition-all shrink-0 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-[#FFF9E8] text-[#111111] hover:bg-[#F7E58D]'}`}>
+            <button onClick={handleMicClick} className={`w-12 h-12 md:w-20 md:h-20 rounded-2xl md:rounded-[2.5rem] flex items-center justify-center transition-all shrink-0 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-[#FFF9E8] text-[#111111] hover:bg-[#F7E58D]'}`}>
                <Mic className="w-5 h-5 md:w-8 md:h-8" />
             </button>
 

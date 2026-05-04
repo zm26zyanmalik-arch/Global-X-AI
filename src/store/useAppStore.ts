@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface User {
   id: string;
@@ -32,13 +32,14 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'model';
   text: string;
+  timestamp?: string;
 }
 
 export interface StudySession {
   subjectId: string;
-  chapterId?: string;
-  startTime: number; // Timestamp when started/resumed
-  accumulatedSeconds: number; // Previous session time
+  chapterId: string;
+  startTime: number;
+  accumulatedSeconds: number;
   isPaused: boolean;
   targetSeconds: number;
   isCompleted?: boolean;
@@ -53,6 +54,29 @@ export interface PlannerTask {
   status: 'pending' | 'completed';
 }
 
+export interface Chapter {
+  id: string;
+  title: string;
+  description: string;
+  estimatedTime: string;
+}
+
+export interface Subject {
+  id: string;
+  name: string;
+  iconName: string;
+  chapters: Chapter[];
+}
+
+export interface RankEntry {
+  id: string;
+  name: string;
+  points: number;
+  rank: number;
+  class: string;
+  isUser?: boolean;
+}
+
 interface AppStore {
   user: User;
   progress: Progress;
@@ -60,6 +84,8 @@ interface AppStore {
   isAuthReady: boolean;
   activeSession: StudySession | null;
   planner: PlannerTask[];
+  subjects: Subject[];
+  rankings: RankEntry[];
   setAuthReady: (ready: boolean) => void;
   setUser: (user: User) => void;
   setProgress: (progress: Progress) => void;
@@ -78,7 +104,76 @@ interface AppStore {
   completeTask: (taskId: string) => void;
   updateUser: (data: Partial<User>) => void;
   restoreData: (progress: Progress, chatHistory: ChatMessage[], planner: PlannerTask[]) => void;
+  // Subject/Chapter methods
+  addChapter: (subjectId: string, title: string) => void;
+  removeChapter: (subjectId: string, chapterId: string) => void;
+  updateChapter: (subjectId: string, chapterId: string, title: string) => void;
+  updateRankings: () => void;
 }
+
+const defaultSubjects: Subject[] = [
+  { 
+    id: 'math', 
+    name: 'Mathematics', 
+    iconName: 'Calculator', 
+    chapters: [
+      { id: 'm1', title: 'Addition Shortcuts', description: 'Master mental addition tricks', estimatedTime: '45m' },
+      { id: 'm2', title: 'Multiplication Fast Methods', description: 'Speed up your calculations', estimatedTime: '60m' },
+      { id: 'm3', title: 'Algebra Basics', description: 'Introduction to variables', estimatedTime: '90m' },
+      { id: 'm4', title: 'Geometry Basics', description: 'Shapes and angles', estimatedTime: '120m' },
+    ]
+  },
+  { 
+    id: 'science', 
+    name: 'Science', 
+    iconName: 'Microscope', 
+    chapters: [
+      { id: 's1', title: 'Photosynthesis', description: 'How plants make food', estimatedTime: '45m' },
+      { id: 's2', title: 'Human Body Basics', description: 'Overview of organ systems', estimatedTime: '60m' },
+      { id: 's3', title: 'Force and Motion', description: 'Newton\'s laws of physics', estimatedTime: '75m' },
+      { id: 's4', title: 'Electricity Basics', description: 'Current, voltage, and circuits', estimatedTime: '90m' },
+    ]
+  },
+  { 
+    id: 'english', 
+    name: 'English', 
+    iconName: 'BookA', 
+    chapters: [
+      { id: 'e1', title: 'Tenses', description: 'Past, Present, and Future', estimatedTime: '45m' },
+      { id: 'e2', title: 'Vocabulary building', description: 'New words everyday', estimatedTime: '30m' },
+      { id: 'e3', title: 'Reading Skills', description: 'Comprehension strategies', estimatedTime: '60m' },
+    ]
+  },
+  { 
+    id: 'hindi', 
+    name: 'Hindi', 
+    iconName: 'Languages', 
+    chapters: [
+      { id: 'h1', title: 'Varnmala', description: 'The Hindi alphabet', estimatedTime: '30m' },
+      { id: 'h2', title: 'Grammar Basics', description: 'Sangya and Sarvanaam', estimatedTime: '45m' },
+    ]
+  },
+  { 
+    id: 'social', 
+    name: 'Social Science', 
+    iconName: 'Globe', 
+    chapters: [
+      { id: 'ss1', title: 'History Basics', description: 'Timeline of civilizations', estimatedTime: '60m' },
+      { id: 'ss2', title: 'Geography Basics', description: 'Maps and climates', estimatedTime: '45m' },
+      { id: 'ss3', title: 'Constitution', description: 'Understanding laws', estimatedTime: '90m' },
+    ]
+  },
+  { 
+    id: 'computer', 
+    name: 'Computer', 
+    iconName: 'FileText', 
+    chapters: [
+      { id: 'c1', title: 'AI Basics', description: 'Introduction to Artificial Intelligence', estimatedTime: '45m' },
+      { id: 'c2', title: 'Internet Safety', description: 'Stay safe online', estimatedTime: '30m' },
+      { id: 'c3', title: 'Coding Intro', description: 'Basic programming concepts', estimatedTime: '90m' },
+    ]
+  },
+];
 
 const initialProgress: Progress = {
   points: 100,
@@ -87,8 +182,13 @@ const initialProgress: Progress = {
   timeStudiedMins: 0,
 };
 
+const generateUUID = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+};
+
 const defaultUser: User = {
-  id: 'guest',
+  id: generateUUID(),
   name: 'Student',
   email: 'student@example.com',
   class: '9',
@@ -105,24 +205,31 @@ export const useAppStore = create<AppStore>()(
       user: defaultUser,
       progress: initialProgress,
       chatHistory: [],
-      isAuthReady: true, // we can default this to true now
+      isAuthReady: true,
       activeSession: null,
       planner: [],
+      subjects: defaultSubjects,
+      rankings: [],
       setAuthReady: (ready) => set({ isAuthReady: ready }),
       setUser: (user) => set({ user }),
       setProgress: (progress) => set({ progress }),
-      logout: () => set({ user: defaultUser, progress: initialProgress, chatHistory: [], activeSession: null, planner: [] }),
+      logout: () => {
+         localStorage.clear();
+         window.location.reload();
+      },
       restoreData: (progress, chatHistory, planner) => set({ progress, chatHistory, planner }),
-      addProgress: (mins, chapters, points) => set((state) => {
-        return {
-          progress: {
+      addProgress: (mins, chapters, points) => {
+        set((state) => {
+          const newProgress = {
             ...state.progress,
             points: state.progress.points + points,
             chaptersCompleted: state.progress.chaptersCompleted + chapters,
             timeStudiedMins: state.progress.timeStudiedMins + mins,
-          }
-        };
-      }),
+          };
+          return { progress: newProgress };
+        });
+        get().updateRankings();
+      },
       updateSubjectProgress: (subjectId, elapsedSeconds) => set((state) => {
         const today = new Date().toDateString();
         const existing = state.progress.subjectProgress?.[subjectId];
@@ -150,12 +257,10 @@ export const useAppStore = create<AppStore>()(
       
       startSession: (subjectId, chapterId, durationMins = 120) => {
         const state = get();
-        // If there's an existing session, stop it properly first to save progress
         if (state.activeSession) {
           state.stopSession();
         }
 
-        // Delay slightly to ensure state propagation if needed, though Zustand is sync
         set({
           activeSession: {
             subjectId,
@@ -205,17 +310,11 @@ export const useAppStore = create<AppStore>()(
            finalElapsed += Math.floor((Date.now() - state.activeSession.startTime) / 1000);
         }
 
-        // If it was already completed, we use the target seconds
         if (isFullCompletion) {
           finalElapsed = state.activeSession.targetSeconds;
         }
         
         state.updateSubjectProgress(state.activeSession.subjectId, finalElapsed);
-        
-        // Award points
-        // If completion bonus was already given in tickSession, we don't give it here
-        // But wait, tickSession now only marks it as completed in my refined logic? 
-        // No, let's keep tickSession giving the bonus, but stopSession only gives "time" points if NOT completed
         
         if (!isFullCompletion) {
           const partialPoints = Math.floor(finalElapsed / 300);
@@ -236,7 +335,6 @@ export const useAppStore = create<AppStore>()(
         const totalElapsed = state.activeSession.accumulatedSeconds + elapsedSinceStart;
         
         if (totalElapsed >= state.activeSession.targetSeconds) {
-           // On full completion, we award the big bonus immediately
            state.addProgress(Math.floor(state.activeSession.targetSeconds / 60), 1, 50); 
            
            set({
@@ -251,10 +349,10 @@ export const useAppStore = create<AppStore>()(
       updatePlanner: (tasks) => set({ planner: tasks }),
 
       generatePlanner: (studentClass) => {
-        const subjectsList = ['math', 'science', 'english', 'hindi', 'social', 'computer'];
+        const state = get();
+        const subjectsList = state.subjects.length > 0 ? state.subjects.map(s => s.id) : ['math', 'science', 'english', 'hindi', 'social', 'computer'];
         const classLevel = parseInt(studentClass) || 9;
         
-        // Define smart task generation based on class
         const schedule = [
           { time: '08:00 AM', period: 'Morning Focus', weight: 1.2 },
           { time: '11:00 AM', period: 'Midday Mastery', weight: 1.0 },
@@ -263,13 +361,12 @@ export const useAppStore = create<AppStore>()(
           { time: '09:00 PM', period: 'Night Revision', weight: 0.5 },
         ];
 
-        const getChapterForSubject = (sid: string, level: number) => {
-          if (sid === 'math') return level > 8 ? 'Algebraic Expressions' : 'Basic Arithmetic';
-          if (sid === 'science') return level > 8 ? 'Photosynthesis Mechanisms' : 'Plant Life';
-          if (sid === 'english') return 'Grammar: Tenses & Verbs';
-          if (sid === 'hindi') return 'Vyakaran Basics';
-          if (sid === 'social') return level > 8 ? 'Economic Resources' : 'Our Environment';
-          if (sid === 'computer') return 'AI and Digital Tools';
+        const getChapterForSubject = (sid: string) => {
+          const subject = state.subjects.find(s => s.id === sid);
+          if (subject && subject.chapters.length > 0) {
+             const randomChapter = subject.chapters[Math.floor(Math.random() * subject.chapters.length)];
+             return randomChapter.title;
+          }
           return 'Foundations';
         };
 
@@ -280,7 +377,7 @@ export const useAppStore = create<AppStore>()(
           return {
             id: `task-${Date.now()}-${i}`,
             subjectId: sid,
-            chapterId: getChapterForSubject(sid, classLevel),
+            chapterId: getChapterForSubject(sid),
             scheduledTime: slot.time,
             durationMins: duration,
             status: 'pending'
@@ -297,13 +394,116 @@ export const useAppStore = create<AppStore>()(
       updateUser: async (data) => {
         const state = get();
         if (!state.user) return;
-
         const updatedUser = { ...state.user, ...data };
         set({ user: updatedUser });
+      },
+
+      addChapter: (subjectId, title) => set((state) => ({
+        subjects: state.subjects.map(s => s.id === subjectId ? {
+          ...s,
+          chapters: [...s.chapters, {
+            id: `ch-${Date.now()}`,
+            title,
+            description: 'Custom added chapter',
+            estimatedTime: '60m'
+          }]
+        } : s)
+      })),
+
+      removeChapter: (subjectId, chapterId) => set((state) => ({
+        subjects: state.subjects.map(s => s.id === subjectId ? {
+          ...s,
+          chapters: s.chapters.filter(c => c.id !== chapterId)
+        } : s)
+      })),
+
+      updateChapter: (subjectId, chapterId, title) => set((state) => ({
+        subjects: state.subjects.map(s => s.id === subjectId ? {
+          ...s,
+          chapters: s.chapters.map(c => c.id === chapterId ? { ...c, title } : c)
+        } : s)
+      })),
+
+      updateRankings: () => {
+        const state = get();
+        const userPoints = state.progress.points;
+        const staticNames = ['Rahul Sharma', 'Aisha Khan', 'Sneha Patel', 'Vikram Singh', 'Priya Das', 'Ananya Roy', 'Arjun Verma', 'Zara Malik'];
+        const staticRankings = staticNames.map((name, i) => ({
+          id: `static-${i}`,
+          name,
+          points: 5000 - (i * 400) + Math.floor(Math.random() * 100),
+          rank: 0,
+          class: (Math.floor(Math.random() * 3) + 8).toString(),
+          isUser: false
+        }));
+        
+        const userEntry = { 
+          id: state.user.id, 
+          name: state.user.name + ' (You)', 
+          points: userPoints, 
+          rank: 0,
+          class: state.user.class,
+          isUser: true 
+        };
+        const combined = [...staticRankings, userEntry].sort((a, b) => b.points - a.points);
+        const finalRankings = combined.map((entry, i) => ({ ...entry, rank: i + 1 }));
+        set({ rankings: finalRankings });
       }
     }),
     {
-      name: 'global-x-ai-v3-storage',
+      name: 'global-x-ai-data-isolation',
+      storage: createJSONStorage(() => ({
+        getItem: (name) => {
+          const raw = localStorage.getItem('global_x_data_isolation');
+          if (!raw) return null;
+          try {
+             const isolated = JSON.parse(raw);
+             return JSON.stringify({
+                state: {
+                   user: { ...isolated.profile, id: isolated.user_id },
+                   progress: isolated.study?.progress,
+                   activeSession: isolated.study?.activeSession,
+                   planner: isolated.study?.planner,
+                   chatHistory: isolated.chat,
+                   subjects: isolated.study?.subjects || defaultSubjects,
+                },
+                version: 0
+             });
+          } catch(e) { return null; }
+        },
+        setItem: (name, value) => {
+          try {
+             const { state } = JSON.parse(value);
+             const isolatedRaw = localStorage.getItem('global_x_data_isolation');
+             const isolated = isolatedRaw ? JSON.parse(isolatedRaw) : {};
+             const finalSave = {
+                user_id: state.user.id,
+                profile: state.user,
+                study: {
+                   progress: state.progress,
+                   activeSession: state.activeSession,
+                   planner: state.planner,
+                   subjects: state.subjects,
+                },
+                analytics: isolated.analytics || {},
+                tests: isolated.tests || {},
+                notes: isolated.notes || {},
+                settings: {
+                   teacherPreference: state.user.teacherPreference,
+                   language: state.user.language,
+                   soundEnabled: state.user.soundEnabled,
+                   notificationsEnabled: state.user.notificationsEnabled,
+                   speechRate: state.user.speechRate
+                },
+                chat: state.chatHistory,
+             };
+             localStorage.setItem('global_x_data_isolation', JSON.stringify(finalSave));
+          } catch (e) {}
+        },
+        removeItem: () => {
+           localStorage.removeItem('global_x_data_isolation');
+        }
+      })),
     }
   )
 );

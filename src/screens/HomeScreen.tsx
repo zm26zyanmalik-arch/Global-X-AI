@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { Card, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
 import { 
   PlayCircle, 
   MessageSquare, 
@@ -37,7 +38,7 @@ const DigitalClock = () => {
 };
 
 export default function HomeScreen({ onNavigate }: { onNavigate: (tab: string) => void }) {
-  const { user, progress } = useAppStore();
+  const { user, progress, planner } = useAppStore();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -61,10 +62,12 @@ export default function HomeScreen({ onNavigate }: { onNavigate: (tab: string) =
     return quotes[new Date().getDate() % quotes.length];
   };
 
+  const pendingTasks = planner.filter(t => t.status === 'pending').length;
+
   const achievements = [
     { label: 'Studied', value: `${progress.timeStudiedMins}m`, icon: ClockIcon, color: 'text-secondary-400' },
     { label: 'Chapters', value: progress.chaptersCompleted, icon: CheckCircle2, color: 'text-secondary-400' },
-    { label: 'Pending', value: '3', icon: Target, color: 'text-secondary-400' },
+    { label: 'Pending', value: pendingTasks, icon: Target, color: 'text-secondary-400' },
     { label: 'Streak', value: progress.streak, icon: Flame, color: 'text-[#F7E58D]' },
   ];
 
@@ -240,26 +243,30 @@ export default function HomeScreen({ onNavigate }: { onNavigate: (tab: string) =
         <h3 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] text-secondary-400 px-1">Today's Focus Flow</h3>
         <Card className="bg-white border border-secondary-100 rounded-[2rem] md:rounded-[4rem] shadow-sm overflow-hidden p-6 md:p-12">
           <div className="space-y-0.5">
-             {[
-               { title: 'Algebra mastery session', sub: 'Chapter 4: Linear Equations', time: '45m' },
-               { title: 'Scientific principles review', sub: 'Plant Cell Structures', time: '30m' },
-               { title: 'English grammar refinement', sub: 'Perfect Tense Usage', time: '20m' }
-             ].map((task, i) => (
-               <motion.div 
-                 key={i} 
-                 whileHover={{ x: 6, backgroundColor: "rgba(0,0,0,0.01)" }}
-                 className="flex items-center justify-between py-4 md:py-8 border-b border-secondary-50 last:border-0 group cursor-pointer transition-all rounded-xl px-2"
-               >
-                  <div className="flex items-center gap-3 md:gap-8">
-                     <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-[#F7E58D] group-hover:scale-150 transition-all shadow-[0_0_10px_rgba(247,229,141,1)]" />
-                     <div className="flex flex-col gap-0.5">
-                        <span className="text-sm md:text-2xl font-black text-[#111111] tracking-tight">{task.title}</span>
-                        <span className="text-[8px] md:text-[11px] font-black text-secondary-400 uppercase tracking-widest leading-none">{task.sub}</span>
-                     </div>
-                  </div>
-                  <div className="text-[9px] md:text-base font-black text-secondary-400 font-mono tracking-wider">{task.time}</div>
-               </motion.div>
-             ))}
+             {planner.length === 0 ? (
+               <div className="py-10 text-center">
+                 <p className="text-secondary-400 font-bold">No tasks planned for today.</p>
+                 <Button variant="link" onClick={() => onNavigate('planner')} className="text-[#F7E58D] font-black uppercase text-[10px] tracking-widest mt-2 p-0 h-auto">Generate Plan Now</Button>
+               </div>
+             ) : (
+               planner.slice(0, 3).map((task, i) => (
+                 <motion.div 
+                   key={i} 
+                   whileHover={{ x: 6, backgroundColor: "rgba(0,0,0,0.01)" }}
+                   onClick={() => onNavigate('planner')}
+                   className="flex items-center justify-between py-4 md:py-8 border-b border-secondary-50 last:border-0 group cursor-pointer transition-all rounded-xl px-2"
+                 >
+                    <div className="flex items-center gap-3 md:gap-8">
+                       <div className={`w-2 h-2 md:w-3 md:h-3 rounded-full ${task.status === 'completed' ? 'bg-green-400' : 'bg-[#F7E58D]'} group-hover:scale-150 transition-all shadow-[0_0_10px_rgba(247,229,141,1)]`} />
+                       <div className="flex flex-col gap-0.5">
+                          <span className={`text-sm md:text-2xl font-black ${task.status === 'completed' ? 'text-secondary-300 line-through' : 'text-[#111111]'} tracking-tight`}>{task.chapterId}</span>
+                          <span className="text-[8px] md:text-[11px] font-black text-secondary-400 uppercase tracking-widest leading-none">{task.subjectId} • {task.scheduledTime}</span>
+                       </div>
+                    </div>
+                    <div className="text-[9px] md:text-base font-black text-secondary-400 font-mono tracking-wider">{task.durationMins}m</div>
+                 </motion.div>
+               ))
+             )}
           </div>
           
           <motion.div 

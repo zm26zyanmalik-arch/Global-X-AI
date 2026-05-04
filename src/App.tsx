@@ -5,7 +5,18 @@
 
 import { useState, useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
-import { Home, MessageSquare, BookOpen, Camera, UserCircle2, BarChart, FileText, Target } from 'lucide-react';
+import { 
+  Home, 
+  BookOpen, 
+  Calendar, 
+  Scan, 
+  MessageSquare, 
+  BarChart, 
+  FileText, 
+  Target,
+  UserCircle2,
+  Trophy
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 import HomeScreen from './screens/HomeScreen';
@@ -18,20 +29,19 @@ import NotesScreen from './screens/NotesScreen';
 import ScannerScreen from './screens/ScannerScreen';
 import TestsScreen from './screens/TestsScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import RankScreen from './screens/RankScreen';
 
 export default function App() {
-  const { user, tickSession, activeSession } = useAppStore();
+  const { user, tickSession, activeSession, logout } = useAppStore();
   const [currentTab, setCurrentTab] = useState('home');
 
   // Global Session Ticker
   useEffect(() => {
     const interval = setInterval(() => {
-      if (activeSession && !activeSession.isPaused && !activeSession.isCompleted) {
-        tickSession();
-      }
+      tickSession();
     }, 1000);
     return () => clearInterval(interval);
-  }, [activeSession, tickSession]);
+  }, [tickSession]);
 
   const renderScreen = () => {
     switch (currentTab) {
@@ -45,6 +55,7 @@ export default function App() {
       case 'tests': return <TestsScreen />;
       case 'profile': return <ProfileScreen />;
       case 'rewards': return <RewardScreen />;
+      case 'rank': return <RankScreen />;
       default: return <HomeScreen onNavigate={setCurrentTab} />;
     }
   };
@@ -52,8 +63,10 @@ export default function App() {
   const navItems = [
     { id: 'home', icon: Home, label: 'Home' },
     { id: 'study', icon: BookOpen, label: 'Study' },
+    { id: 'planner', icon: Calendar, label: 'Planner' },
+    { id: 'rank', icon: Trophy, label: 'Rank' },
     { id: 'chat', icon: MessageSquare, label: 'Chat' },
-    { id: 'scanner', icon: Camera, label: 'Scan' },
+    { id: 'scanner', icon: Scan, label: 'Scan' },
     { id: 'analytics', icon: BarChart, label: 'Stats' },
     { id: 'notes', icon: FileText, label: 'Notes' },
     { id: 'tests', icon: Target, label: 'Tests' },
