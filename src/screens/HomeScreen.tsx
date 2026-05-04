@@ -14,6 +14,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { TeacherAvatar } from '../components/TeacherAvatar';
 
 const DigitalClock = () => {
   const [time, setTime] = useState(new Date());
@@ -142,15 +143,11 @@ export default function HomeScreen({ onNavigate }: { onNavigate: (tab: string) =
 
                {/* AI Teacher Avatar */}
                <div className="relative mb-8 md:mb-12">
-                  <motion.div 
-                     animate={{ rotate: 360 }} transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
-                     className="absolute inset-[-10px] md:inset-[-15px] rounded-full border border-dashed border-[#F7E58D]/60"
+                  <TeacherAvatar 
+                    name={user?.teacherPreference || 'Priya'} 
+                    isSpeaking={false} 
+                    size="lg" 
                   />
-                  <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full bg-white p-1 border-2 md:border-4 border-white shadow-2xl relative overflow-hidden flex items-center justify-center">
-                     <div className="text-6xl sm:text-7xl md:text-9xl select-none translate-y-1">
-                        {user?.teacherPreference === 'Priya' ? '👩🏽‍🏫' : '👨🏽‍🏫'}
-                     </div>
-                  </div>
                   <motion.div 
                     initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.7, type: "spring" }}
                     className="absolute -bottom-1 -right-1 w-8 h-8 md:w-12 md:h-12 bg-[#F7E58D] rounded-full border-4 border-[#FFF9E8] flex items-center justify-center shadow-lg"

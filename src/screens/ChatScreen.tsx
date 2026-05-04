@@ -2,59 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import { useAppStore, ChatMessage } from '../store/useAppStore';
 import { askTeacher } from '../services/geminiService';
 import { Button } from '../components/ui/button';
+import { TeacherAvatar } from '../components/TeacherAvatar';
 import { Send, Mic, Volume2, StopCircle, Sparkles, ChevronLeft, Trash2, Search, Settings2, MoreVertical, Paperclip } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'motion/react';
-
-const VirtualAvatar = ({ isSpeaking, isThinking, teacherName }: { isSpeaking: boolean, isThinking: boolean, teacherName: string }) => {
-  return (
-    <div className="relative w-12 h-12 md:w-24 md:h-24 shrink-0 px-1 md:px-2">
-      {/* Outer Pulse */}
-      <motion.div 
-        animate={{ 
-          scale: isSpeaking ? [1, 1.25, 1] : isThinking ? [1, 1.1, 1] : 1,
-          opacity: isSpeaking ? [0.2, 0.4, 0.2] : 0.1
-        }}
-        transition={{ duration: isSpeaking ? 0.8 : 2, repeat: Infinity }}
-        className="absolute inset-0 rounded-full bg-[#F7E58D] blur-xl md:blur-2xl"
-      />
-      
-      <motion.div 
-        animate={{ y: isSpeaking ? [0, -3, 0] : [0, -1, 0] }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        className="relative w-10 h-10 md:w-20 md:h-20 bg-white rounded-full border-2 md:border-4 border-[#F7E58D]/40 shadow-2xl overflow-hidden flex flex-col items-center justify-center p-0.5 md:p-1"
-      >
-         <div className="relative w-full h-full flex items-center justify-center bg-[#F9F9F9] rounded-full overflow-hidden">
-            <motion.div 
-               animate={{ scale: isSpeaking ? [1, 1.08, 1] : 1 }}
-               className="text-2xl md:text-6xl select-none"
-            >
-               {teacherName === 'Rohan' ? '👨🏽‍🏫' : '👩🏽‍🏫'}
-            </motion.div>
-            
-            {/* Lip Sync Wave Overlay */}
-            <AnimatePresence>
-              {isSpeaking && (
-                <motion.div 
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="absolute bottom-1 md:bottom-3 left-0 right-0 flex justify-center gap-0.5"
-                >
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <motion.div 
-                      key={i}
-                      animate={{ height: [2, 8, 2] }}
-                      transition={{ duration: 0.3, repeat: Infinity, delay: i * 0.05 }}
-                      className="w-0.5 md:w-1 bg-[#111111] rounded-full opacity-40 shadow-sm"
-                    />
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-         </div>
-      </motion.div>
-    </div>
-  )
-}
 
 export default function ChatScreen() {
   const { user, chatHistory, setChatHistory } = useAppStore();
@@ -226,7 +177,7 @@ export default function ChatScreen() {
       {/* Premium Gradient Header */}
       <div className="relative px-4 md:px-12 py-4 md:py-10 bg-white border-b-2 border-secondary-50 flex items-center justify-between z-30 shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
          <div className="flex items-center gap-3 md:gap-8">
-            <VirtualAvatar isSpeaking={isSpeaking} isThinking={loading} teacherName={user?.teacherPreference || 'Priya'} />
+            <TeacherAvatar isSpeaking={isSpeaking} isThinking={loading} name={user?.teacherPreference || 'Priya'} size="md" />
             <div>
                <div className="flex items-center gap-2 mb-0.5 md:mb-1">
                   <h2 className="font-black text-lg md:text-3xl text-[#111111] tracking-tight">{user?.teacherPreference}</h2>

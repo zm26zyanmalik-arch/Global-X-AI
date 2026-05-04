@@ -3,6 +3,7 @@ import { useAppStore } from '../store/useAppStore';
 import { UserCircle2, BookOpen, Settings, LogOut, ArrowRight, ShieldCheck, Mail, CreditCard, Bell, Globe2, ChevronRight, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState } from 'react';
+import { TeacherAvatar } from '../components/TeacherAvatar';
 
 export default function ProfileScreen() {
   const { user, logout, updateUser } = useAppStore();
@@ -230,9 +231,7 @@ export default function ProfileScreen() {
                            }}
                            className={`w-full flex items-center gap-6 p-8 rounded-[3rem] border-2 transition-all text-left ${user?.teacherPreference === teacher.name ? 'bg-[#FFF9E8] border-[#F7E58D]' : 'bg-[#F9F9F9] border-transparent hover:border-[#F7E58D]/30'}`}
                         >
-                           <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-5xl shadow-xl transition-transform group-hover:scale-110">
-                              {teacher.icon}
-                           </div>
+                           <TeacherAvatar name={teacher.name} isSpeaking={false} size="sm" />
                            <div className="flex-1">
                               <h4 className="text-2xl font-black text-[#111111] leading-none mb-1">{teacher.name}</h4>
                               <p className="text-secondary-400 font-bold text-sm">{teacher.desc}</p>
